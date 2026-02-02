@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
-import { MusicBrainzService } from './musicbrainz.service';
+import { MusicBrainzProvider } from './musicbrainz.provider';
 import { of, throwError } from 'rxjs';
 import { HttpStatus } from '@nestjs/common';
 import { AxiosResponse, AxiosHeaders } from 'axios';
 
 describe('MusicBrainzService', () => {
-  let service: MusicBrainzService;
+  let service: MusicBrainzProvider;
   let httpService: jest.Mocked<HttpService>;
 
   const validMbid = 'b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d';
@@ -60,12 +60,12 @@ describe('MusicBrainzService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MusicBrainzService,
+        MusicBrainzProvider,
         { provide: HttpService, useValue: mockHttpService },
       ],
     }).compile();
 
-    service = module.get<MusicBrainzService>(MusicBrainzService);
+    service = module.get<MusicBrainzProvider>(MusicBrainzProvider);
     httpService = module.get(HttpService);
   });
 

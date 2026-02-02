@@ -77,8 +77,16 @@ export class RecordController {
     @Query('category') category?: RecordCategory,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
-  ): Promise<{ data: Record[], total: number, limit: number, offset: number }> {
-    return this.recordService.findAll({ q, artist, album, format, category, limit, offset });
+  ): Promise<{ data: Record[]; total: number; limit: number; offset: number }> {
+    return this.recordService.findAll({
+      q,
+      artist,
+      album,
+      format,
+      category,
+      limit,
+      offset,
+    });
   }
 
   @Get(':id')

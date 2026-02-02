@@ -32,17 +32,17 @@ export class RecordRepository {
   async findAll(filter: RecordFilter = {}) {
     const limit = Math.min(Number(filter.limit) || 20, 100);
     const offset = Math.max(Number(filter.offset) || 0, 0);
-  
+
     const query = {
       ...this.buildQuery(filter),
       deletedAt: { $exists: false },
     };
-  
+
     const [records, total] = await Promise.all([
       this.recordModel.find(query).limit(limit).skip(offset).exec(),
       this.recordModel.countDocuments(query).exec(),
     ]);
-  
+
     return {
       data: records,
       total,
@@ -52,11 +52,11 @@ export class RecordRepository {
   }
 
   async updateById(id: string, update: Partial<Record>) {
-    return await this.recordModel.findOneAndUpdate(
-      { _id: id, deletedAt: { $exists: false } },
-      update,
-      { new: true },
-    ).exec();
+    return await this.recordModel
+      .findOneAndUpdate({ _id: id, deletedAt: { $exists: false } }, update, {
+        new: true,
+      })
+      .exec();
   }
   async decrementStockIfAvailable(
     recordId: string,

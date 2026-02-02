@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RecordService } from './record.service';
 import { RecordRepository } from './record.repository';
-import { MusicBrainzService } from '../../integrations/musicbrainz/musicbrainz.service';
+import { ReleaseService } from '../../integrations/releases/release.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { RecordCategory, RecordFormat } from './record.enum';
 import { MongoErrorCode } from '../../common/constants/error-codes.constants';
@@ -11,10 +11,15 @@ import { Cache } from 'cache-manager';
 describe('RecordService', () => {
   let service: RecordService;
   let repository: jest.Mocked<RecordRepository>;
-  let musicBrainzService: jest.Mocked<MusicBrainzService>;
+  let releaseService: jest.Mocked<ReleaseService>;
   let cacheManager: jest.Mocked<Cache>;
   let cacheKey: string;
-  let cachedResult: { data: Record[], total: number, limit: number, offset: number };
+  let cachedResult: {
+    data: Record[];
+    total: number;
+    limit: number;
+    offset: number;
+  };
 
   const mockRecord = {
     _id: '507f1f77bcf86cd799439011',
@@ -46,10 +51,6 @@ describe('RecordService', () => {
       incrementStock: jest.fn(),
     };
 
-    const mockMusicBrainzService = {
-      getRelease: jest.fn(),
-    };
-
     const cacheManagerMock: jest.Mocked<Cache> = {
       get: jest.fn(),
       set: jest.fn(),
@@ -57,19 +58,22 @@ describe('RecordService', () => {
       reset: jest.fn(),
     } as any;
 
+    const mockReleaseService = {
+      getRelease: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordService,
         { provide: RecordRepository, useValue: mockRepository },
-        { provide: MusicBrainzService, useValue: mockMusicBrainzService },
+        { provide: ReleaseService, useValue: mockReleaseService },
         { provide: CACHE_MANAGER, useValue: cacheManagerMock },
       ],
     }).compile();
 
     service = module.get<RecordService>(RecordService);
     repository = module.get(RecordRepository);
-    musicBrainzService = module.get(MusicBrainzService);
+    releaseService = module.get(ReleaseService);
     cacheManager = module.get(CACHE_MANAGER);
   });
 
@@ -94,7 +98,7 @@ describe('RecordService', () => {
         mbid: undefined,
         tracklist: [],
       });
-      expect(musicBrainzService.getRelease).not.toHaveBeenCalled();
+      expect(releaseService.getRelease).not.toHaveBeenCalled();
     });
 
     it('should create a record with MBID and fetch tracklist', async () => {
@@ -106,7 +110,7 @@ describe('RecordService', () => {
         tracklist: mockTracklist,
       };
 
-      musicBrainzService.getRelease.mockResolvedValue({
+      releaseService.getRelease.mockResolvedValue({
         id: mbid,
         title: 'Abbey Road',
         artist: 'The Beatles',
@@ -117,7 +121,7 @@ describe('RecordService', () => {
       const result = await service.create(dtoWithMbid);
 
       expect(result.tracklist).toEqual(mockTracklist);
-      expect(musicBrainzService.getRelease).toHaveBeenCalledWith(mbid);
+      expect(releaseService.getRelease).toHaveBeenCalledWith(mbid);
       expect(repository.create).toHaveBeenCalledWith({
         ...createDto,
         mbid,
@@ -129,7 +133,7 @@ describe('RecordService', () => {
       const mbid = 'invalid-mbid-0000-0000-000000000000';
       const dtoWithMbid = { ...createDto, mbid };
 
-      musicBrainzService.getRelease.mockResolvedValue(null);
+      releaseService.getRelease.mockResolvedValue(null);
       repository.create.mockResolvedValue({
         ...mockRecord,
         mbid,
@@ -139,7 +143,7 @@ describe('RecordService', () => {
       const result = await service.create(dtoWithMbid);
 
       expect(result.tracklist).toEqual([]);
-      expect(musicBrainzService.getRelease).toHaveBeenCalledWith(mbid);
+      expect(releaseService.getRelease).toHaveBeenCalledWith(mbid);
     });
 
     it('should throw ConflictException on duplicate key error', async () => {
@@ -185,7 +189,9 @@ describe('RecordService', () => {
       const result = await service.findAll({});
 
       expect(result).toEqual(cachedResult);
-      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(cacheKey);
+      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(
+        cacheKey,
+      );
     });
 
     it('should pass filters to repository', async () => {
@@ -193,7 +199,9 @@ describe('RecordService', () => {
       const cacheKey = `records:${JSON.stringify(filter)}`;
       await service.findAll(filter);
 
-      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(cacheKey);
+      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(
+        cacheKey,
+      );
     });
 
     it('should cache results', async () => {
@@ -203,45 +211,61 @@ describe('RecordService', () => {
 
       (cacheManager as jest.Mocked<Cache>).get.mockResolvedValue(cachedResult);
 
-
-      repository.findAll.mockResolvedValue({ data: [
-        {
-          _id: '507f1f77bcf86cd799439011',
-          artist: 'Pink Floyd',
-          album: 'The Dark Side of the Moon',
-          price: 25,
-          qty: 10,
-          format: RecordFormat.VINYL,
-          category: RecordCategory.ROCK,
-        },
-      ], total: 1, limit: 20, offset: 0 } as any);
+      repository.findAll.mockResolvedValue({
+        data: [
+          {
+            _id: '507f1f77bcf86cd799439011',
+            artist: 'Pink Floyd',
+            album: 'The Dark Side of the Moon',
+            price: 25,
+            qty: 10,
+            format: RecordFormat.VINYL,
+            category: RecordCategory.ROCK,
+          },
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      } as any);
 
       const result = await service.findAll(filter);
 
-      expect((cacheManager as jest.Mocked<Cache>).set).toHaveBeenCalledWith(cacheKey, { data: [
+      expect((cacheManager as jest.Mocked<Cache>).set).toHaveBeenCalledWith(
+        cacheKey,
         {
-          _id: '507f1f77bcf86cd799439011',
-          artist: 'Pink Floyd',
-          album: 'The Dark Side of the Moon',
-          price: 25,
-          qty: 10,
-          format: RecordFormat.VINYL,
-          category: RecordCategory.ROCK,
+          data: [
+            {
+              _id: '507f1f77bcf86cd799439011',
+              artist: 'Pink Floyd',
+              album: 'The Dark Side of the Moon',
+              price: 25,
+              qty: 10,
+              format: RecordFormat.VINYL,
+              category: RecordCategory.ROCK,
+            },
+          ],
+          total: 1,
+          limit: 20,
+          offset: 0,
         },
-      ], total: 1, limit: 20, offset: 0 });
+      );
 
-      expect(result).toEqual({ data: [
-        {
-          _id: '507f1f77bcf86cd799439011',
-          artist: 'Pink Floyd',
-          album: 'The Dark Side of the Moon',
-          price: 25,
-          qty: 10,
-          format: RecordFormat.VINYL,
-          category: RecordCategory.ROCK,
-        },
-      ], total: 1, limit: 20, offset: 0 });
-
+      expect(result).toEqual({
+        data: [
+          {
+            _id: '507f1f77bcf86cd799439011',
+            artist: 'Pink Floyd',
+            album: 'The Dark Side of the Moon',
+            price: 25,
+            qty: 10,
+            format: RecordFormat.VINYL,
+            category: RecordCategory.ROCK,
+          },
+        ],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      });
     });
   });
 
@@ -298,7 +322,7 @@ describe('RecordService', () => {
       const updateDto = { mbid: newMbid };
 
       repository.findById.mockResolvedValue(existingRecord as any);
-      musicBrainzService.getRelease.mockResolvedValue({
+      releaseService.getRelease.mockResolvedValue({
         id: newMbid,
         title: 'Abbey Road',
         artist: 'The Beatles',
@@ -312,7 +336,7 @@ describe('RecordService', () => {
 
       await service.update('507f1f77bcf86cd799439011', updateDto);
 
-      expect(musicBrainzService.getRelease).toHaveBeenCalledWith(newMbid);
+      expect(releaseService.getRelease).toHaveBeenCalledWith(newMbid);
       expect(repository.updateById).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439011',
         {
@@ -335,7 +359,7 @@ describe('RecordService', () => {
 
       await service.update('507f1f77bcf86cd799439011', updateDto);
 
-      expect(musicBrainzService.getRelease).not.toHaveBeenCalled();
+      expect(releaseService.getRelease).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException on duplicate key during update', async () => {
@@ -359,7 +383,7 @@ describe('RecordService', () => {
 
       expect(repository.updateById).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439011',
-        { deletedAt: new Date() },
+        { deletedAt: expect.any(Date) },
       );
     });
 

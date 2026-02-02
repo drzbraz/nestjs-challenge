@@ -9,18 +9,18 @@ import { RecordRepository, RecordFilter } from './record.repository';
 import { CreateRecordRequestDTO } from './dtos/create-record.request.dto';
 import { UpdateRecordRequestDTO } from './dtos/update-record.request.dto';
 import {
-  MusicBrainzRelease,
-  MusicBrainzService,
-} from '../../integrations/musicbrainz/musicbrainz.service';
+  ReleaseService,
+  Release,
+} from '../../integrations/releases/release.service';
 import { MongoErrorCode } from '../../common/constants/error-codes.constants';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';  
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
 @Injectable()
 export class RecordService {
   constructor(
     private readonly recordRepository: RecordRepository,
-    private readonly musicBrainzService: MusicBrainzService,
+    private readonly releaseService: ReleaseService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -44,21 +44,27 @@ export class RecordService {
     }
   }
 
-  async findAll(filter: RecordFilter): Promise<{ data: Record[], total: number, limit: number, offset: number }> {
+  async findAll(
+    filter: RecordFilter,
+  ): Promise<{ data: Record[]; total: number; limit: number; offset: number }> {
     const cacheKey = this.buildCacheKey(filter);
-  
+
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) {
-      return cached as { data: Record[], total: number, limit: number, offset: number };
+      return cached as {
+        data: Record[];
+        total: number;
+        limit: number;
+        offset: number;
+      };
     }
-  
+
     const result = await this.recordRepository.findAll(filter);
-  
+
     await this.cacheManager.set(cacheKey, result);
-  
+
     return result;
   }
-  
 
   async findById(id: string): Promise<Record> {
     const record = await this.recordRepository.findById(id);
@@ -105,12 +111,12 @@ export class RecordService {
     const record = await this.recordRepository.updateById(id, {
       deletedAt: new Date(),
     });
-  
+
     if (!record) {
       throw new NotFoundException(`Record with ID ${id} not found`);
     }
   }
-  
+
   async decrementStockIfAvailable(
     recordId: string,
     quantity: number,
@@ -130,9 +136,9 @@ export class RecordService {
 
   private async fetchTracklistIfMbidProvided(
     mbid?: string,
-  ): Promise<MusicBrainzRelease['tracklist']> {
+  ): Promise<Release['tracklist']> {
     if (!mbid) return [];
-    const release = await this.musicBrainzService.getRelease(mbid);
+    const release = await this.releaseService.getRelease(mbid);
     return release?.tracklist ?? [];
   }
 

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { RecordFormat, RecordCategory } from './record.enum';
-import { Track } from '../../integrations/musicbrainz/musicbrainz.service';
+import { Track } from '../../integrations/releases/release.service';
 
 @Schema({ timestamps: true })
 export class Record extends Document {

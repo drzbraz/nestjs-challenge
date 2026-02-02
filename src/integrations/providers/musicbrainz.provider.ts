@@ -2,6 +2,7 @@ import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { XMLParser } from 'fast-xml-parser';
+import { Release } from '../releases/release.service';
 
 const MUSICBRAINZ_CONFIG = {
   BASE_URL: 'https://musicbrainz.org/ws/2',
@@ -24,23 +25,16 @@ export interface Track {
   length?: number;
 }
 
-export interface MusicBrainzRelease {
-  id: string;
-  title: string;
-  artist: string;
-  tracklist: Track[];
-}
-
 @Injectable()
-export class MusicBrainzService {
-  private readonly logger = new Logger(MusicBrainzService.name);
+export class MusicBrainzProvider {
+  private readonly logger = new Logger(MusicBrainzProvider.name);
   private readonly xmlParser: XMLParser;
 
   constructor(private readonly httpService: HttpService) {
     this.xmlParser = new XMLParser(XML_PARSER_CONFIG);
   }
 
-  async getRelease(mbid: string): Promise<MusicBrainzRelease | null> {
+  async getRelease(mbid: string): Promise<Release | null> {
     try {
       const url = `${MUSICBRAINZ_CONFIG.BASE_URL}/release/${mbid}?inc=${MUSICBRAINZ_CONFIG.RELEASE_INCLUDES}`;
       this.logger.debug(`Fetching release from MusicBrainz: ${url}`);
@@ -71,10 +65,7 @@ export class MusicBrainzService {
     throw error;
   }
 
-  private mapReleaseResponse(
-    parsed: any,
-    mbid: string,
-  ): MusicBrainzRelease | null {
+  private mapReleaseResponse(parsed: any, mbid: string): Release | null {
     const release = parsed?.metadata?.release;
     if (!release) {
       this.logger.warn(`Invalid response structure for MBID: ${mbid}`);

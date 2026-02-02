@@ -3,7 +3,6 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { RecordFormat, RecordCategory } from '../src/api/record/record.enum';
-import { Cipher } from 'crypto';
 
 describe('RecordController (e2e)', () => {
   let app: INestApplication;
