@@ -191,7 +191,7 @@ describe('RecordRepository', () => {
         exec: jest.fn().mockResolvedValue(mockRecord),
       } as any);
 
-      const result = await repository.deleteById('507f1f77bcf86cd799439011');
+      const result = await repository.updateById('507f1f77bcf86cd799439011', { deletedAt: new Date() });
 
       expect(result).toEqual(mockRecord);
       expect(model.findByIdAndDelete).toHaveBeenCalledWith(
@@ -204,7 +204,7 @@ describe('RecordRepository', () => {
         exec: jest.fn().mockResolvedValue(null),
       } as any);
 
-      const result = await repository.deleteById('nonexistent');
+      const result = await repository.updateById('nonexistent', { deletedAt: new Date() });
 
       expect(result).toBeNull();
     });

@@ -7,6 +7,7 @@ import {
   Query,
   Put,
   Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Record } from './record.schema';
@@ -74,8 +75,10 @@ export class RecordController {
     @Query('album') album?: string,
     @Query('format') format?: RecordFormat,
     @Query('category') category?: RecordCategory,
-  ): Promise<Record[]> {
-    return this.recordService.findAll({ q, artist, album, format, category });
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ): Promise<{ data: Record[], total: number, limit: number, offset: number }> {
+    return this.recordService.findAll({ q, artist, album, format, category, limit, offset });
   }
 
   @Get(':id')
@@ -98,10 +101,11 @@ export class RecordController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Delete a record' })
-  @ApiResponse({ status: 200, description: 'Record deleted successfully' })
+  @ApiResponse({ status: 204, description: 'Record deleted successfully' })
   @ApiResponse({ status: 404, description: 'Record not found' })
-  async delete(@Param('id') id: string): Promise<Record> {
-    return this.recordService.delete(id);
+  async delete(@Param('id') id: string): Promise<void> {
+    await this.recordService.delete(id);
   }
 }

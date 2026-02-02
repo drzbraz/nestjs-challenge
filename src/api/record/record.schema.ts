@@ -28,6 +28,9 @@ export class Record extends Document {
 
   @Prop({ required: false })
   tracklist?: Track[];
+
+  @Prop({ required: false })
+  deletedAt?: Date;
 }
 
 export const RecordSchema = SchemaFactory.createForClass(Record);

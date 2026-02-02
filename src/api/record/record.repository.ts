@@ -10,6 +10,9 @@ export interface RecordFilter {
   album?: string;
   format?: RecordFormat;
   category?: RecordCategory;
+  limit?: number;
+  offset?: number;
+  total?: number;
 }
 
 @Injectable()
@@ -23,23 +26,38 @@ export class RecordRepository {
   }
 
   async findById(id: string): Promise<Record | null> {
-    return await this.recordModel.findById(id).exec();
+    return await this.recordModel.findOne({ _id: id, deletedAt: null }).exec();
   }
 
-  async findAll(filter: RecordFilter = {}): Promise<Record[]> {
-    return await this.recordModel.find(this.buildQuery(filter)).exec();
+  async findAll(filter: RecordFilter = {}) {
+    const limit = Math.min(Number(filter.limit) || 20, 100);
+    const offset = Math.max(Number(filter.offset) || 0, 0);
+  
+    const query = {
+      ...this.buildQuery(filter),
+      deletedAt: { $exists: false },
+    };
+  
+    const [records, total] = await Promise.all([
+      this.recordModel.find(query).limit(limit).skip(offset).exec(),
+      this.recordModel.countDocuments(query).exec(),
+    ]);
+  
+    return {
+      data: records,
+      total,
+      limit,
+      offset,
+    };
   }
-
-  async updateById(id: string, data: Partial<Record>): Promise<Record | null> {
-    return await this.recordModel
-      .findByIdAndUpdate(id, data, { new: true })
-      .exec();
+  
+  async updateById(id: string, update: Partial<Record>) {
+    return this.recordModel.findOneAndUpdate(
+      { _id: id, deletedAt: { $exists: false } },
+        update,
+      { new: true },
+    );
   }
-
-  async deleteById(id: string): Promise<Record | null> {
-    return await this.recordModel.findByIdAndDelete(id).exec();
-  }
-
   async decrementStockIfAvailable(
     recordId: string,
     quantity: number,

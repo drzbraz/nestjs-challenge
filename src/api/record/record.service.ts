@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
 } from '@nestjs/common';
 import { Record } from './record.schema';
 import { RecordRepository, RecordFilter } from './record.repository';
@@ -12,12 +13,15 @@ import {
   MusicBrainzService,
 } from '../../integrations/musicbrainz/musicbrainz.service';
 import { MongoErrorCode } from '../../common/constants/error-codes.constants';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';  
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class RecordService {
   constructor(
     private readonly recordRepository: RecordRepository,
     private readonly musicBrainzService: MusicBrainzService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async create(dto: CreateRecordRequestDTO): Promise<Record> {
@@ -40,9 +44,21 @@ export class RecordService {
     }
   }
 
-  async findAll(filter: RecordFilter): Promise<Record[]> {
-    return await this.recordRepository.findAll(filter);
+  async findAll(filter: RecordFilter): Promise<{ data: Record[], total: number, limit: number, offset: number }> {
+    const cacheKey = this.buildCacheKey(filter);
+  
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached as { data: Record[], total: number, limit: number, offset: number };
+    }
+  
+    const result = await this.recordRepository.findAll(filter);
+  
+    await this.cacheManager.set(cacheKey, result);
+  
+    return result;
   }
+  
 
   async findById(id: string): Promise<Record> {
     const record = await this.recordRepository.findById(id);
@@ -85,14 +101,16 @@ export class RecordService {
     }
   }
 
-  async delete(id: string): Promise<Record> {
-    const record = await this.recordRepository.deleteById(id);
+  async delete(id: string): Promise<void> {
+    const record = await this.recordRepository.updateById(id, {
+      deletedAt: new Date(),
+    });
+  
     if (!record) {
       throw new NotFoundException(`Record with ID ${id} not found`);
     }
-    return record;
   }
-
+  
   async decrementStockIfAvailable(
     recordId: string,
     quantity: number,
@@ -129,5 +147,9 @@ export class RecordService {
         `Record with artist "${artist}", album "${album}", and format "${format}" already exists`,
       );
     }
+  }
+
+  private buildCacheKey(filter: RecordFilter): string {
+    return `records:${JSON.stringify(filter)}`;
   }
 }
