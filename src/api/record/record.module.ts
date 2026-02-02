@@ -6,6 +6,7 @@ import { RecordRepository } from './record.repository';
 import { ReleaseModule } from '../../integrations/releases/release.module';
 import { RecordSchema } from './record.schema';
 import { CacheModule } from '@nestjs/cache-manager';
+import { Logger } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     }),
   ],
   controllers: [RecordController],
-  providers: [RecordService, RecordRepository],
+  providers: [RecordService, RecordRepository, Logger],
   exports: [RecordService],
 })
 export class RecordModule {}

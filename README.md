@@ -1,105 +1,218 @@
-# Record Store Challenge API
-## Description
+---
 
-This is a **NestJS** application starter with MongoDB integration. If necessary, it provides a script to boot a Mongo emulator for Docker. This setup includes end-to-end tests, unit tests, test coverage, linting, and database setup with data from `data.json`.
+# NestJS Record Store Challenge API
 
-## Installation
+This project is a backend API built with **NestJS** and **MongoDB**, developed as a technical challenge.
+The focus of the implementation is **clean architecture**, **scalability**, **data consistency**, and **production-ready practices**.
 
-### Install dependencies:
+---
+
+## 🚀 Project Overview
+
+The API manages a **record store**, allowing:
+
+* creation and search of music records
+* integration with an external provider to enrich records with tracklists
+* stock-safe order creation
+* pagination, caching, and concurrency protection
+
+The project was intentionally designed to be **modular, testable, and easy to evolve**.
+
+---
+
+## 🧠 Architectural Principles
+
+* Clear separation of concerns:
+
+  * **Controllers** → HTTP layer
+  * **Services** → business logic
+  * **Repositories** → data access
+  * **Integrations** → external providers
+* Database-level filtering (no in-memory scans)
+* Atomic operations for stock management
+* Soft delete strategy
+* External providers isolated behind a generic service
+* Strong test coverage for business logic and critical flows
+
+---
+
+## ✨ Implemented Improvements & Extras
+
+### 1️⃣ Clean Domain Structure
+
+* Feature-based modules (`record`, `order`)
+* Explicit repository layer
+* External integrations isolated from domain logic
+
+### 2️⃣ External Provider Abstraction
+
+* Introduced a **generic release service** instead of coupling the domain to MusicBrainz
+* Makes provider replacement trivial in the future
+
+```txt
+integrations/
+└─ releases/
+   ├─ release.service.ts
+   └─ providers/
+      └─ musicbrainz.provider.ts
+```
+
+---
+
+### 3️⃣ Database-Level Filtering & Pagination
+
+* All filtering is executed directly in MongoDB
+* Supports `limit` and `offset`
+* Prevents loading large datasets into memory
+* Scales linearly with database size
+
+---
+
+### 4️⃣ Indexing Strategy
+
+* Compound unique index for records:
+
+  ```
+  (artist, album, format)
+  ```
+* Ensures data integrity and fast lookups
+* Index choices are based on selectivity and query patterns
+
+---
+
+### 5️⃣ Cache for Read-Heavy Queries
+
+* Short-lived cache for `GET /records`
+* Cache key based on query filters
+* Automatic invalidation on create/update/delete
+* Mutable data (stock, orders) is **never cached**
+
+---
+
+### 6️⃣ Atomic Stock Operations
+
+* Stock decrement is performed using **atomic MongoDB operations**
+* Prevents overselling under concurrent requests
+* Explicit rollback logic if order creation fails
+
+---
+
+### 7️⃣ Concurrency Safety (e2e Tested)
+
+* End-to-end tests simulate concurrent order creation
+* Guarantees that only one order succeeds when stock is limited
+
+---
+
+### 8️⃣ Soft Delete Strategy
+
+* Records are soft-deleted using `deletedAt`
+* Deleted records are excluded from all queries
+* Deleting an already deleted record returns `404`
+
+---
+
+### 9️⃣ Historical Price Preservation
+
+* Order stores the record price at the time of purchase
+* Protects historical data from future price changes
+
+---
+
+### 🔟 Comprehensive Testing
+
+* Unit tests for services and repositories
+* Controller tests for HTTP contracts
+* End-to-end tests for real workflows
+* Explicit tests for error cases and concurrency
+
+---
+
+## 📡 API Routes Overview
+
+### 🎵 Records
+
+| Method | Endpoint       | Description                            |
+| ------ | -------------- | -------------------------------------- |
+| POST   | `/records`     | Create a new record                    |
+| GET    | `/records`     | List records with filters & pagination |
+| GET    | `/records/:id` | Get record details                     |
+| PUT    | `/records/:id` | Update a record                        |
+| DELETE | `/records/:id` | Soft delete a record                   |
+
+**Query Parameters (`GET /records`)**
+
+* `q` – free text search
+* `artist`
+* `album`
+* `format`
+* `category`
+* `limit`
+* `offset`
+
+---
+
+### 🛒 Orders
+
+| Method | Endpoint  | Description        |
+| ------ | --------- | ------------------ |
+| POST   | `/orders` | Create a new order |
+
+**Order creation guarantees**
+
+* Validates stock availability
+* Decrements stock atomically
+* Preserves price history
+* Prevents overselling
+
+---
+
+## 🧪 Running Tests
 
 ```bash
-$ npm install
-````
-
-### Docker for MongoDB Emulator
-To use the MongoDB Emulator, you can start it using Docker:
-```
-npm run mongo:start
-```
-This will start a MongoDB instance running on your local machine. You can customize the settings in the Docker setup by modifying the docker-compose-mongo.yml if necessary. In the current configuration, you will have a MongoDB container running, which is accessible at localhost:27017.
-This mongo url will be necessary on the .env file, with example as follows:
-
-```
-MONGO_URL=mongodb://localhost:27017/records
-```
-This will point your application to a local MongoDB instance.
-
-### MongoDB Data Setup
-The data.json file contains example records to seed your database. The setup script will import the records from this file into MongoDB.
-
-To set up the database with the example records:
-
-```
-npm run setup:db
-```
-This will prompt the user to cleanup (Y/N) existing collection before importing data.json
-
-
-#### data.json Example
-Here’s an example of the data.json file that contains records:
-```
-[
-    {
-        "artist": "Foo Fighters",
-        "album": "Foo Fighers",
-        "price": 8,
-        "qty": 10,
-        "format": "CD",
-        "category": "Rock",
-        "mbid": "d6591261-daaa-4bb2-81b6-544e499da727"
-  },
-  {
-        "artist": "The Cure",
-        "album": "Disintegration",
-        "price": 23,
-        "qty": 1,
-        "format": "Vinyl",
-        "category": "Alternative",
-        "mbid": "11af85e2-c272-4c59-a902-47f75141dc97"
-  },
-]
-```
-
-### Running the App
-#### Development Mode
-To run the application in development mode (with hot reloading):
-
-```
-npm run start:dev
-```
-#### Production Mode
-To build and run the app in production mode:
-
-```
-npm run start:prod
-```
-
-### Tests
-#### Run Unit Tests
-To run unit tests:
-
-```
 npm run test
-```
-To run unit tests with code coverage:
-
-```
+npm run test:e2e
 npm run test:cov
 ```
-This will show you how much of your code is covered by the unit tests.
-#### Run End-to-End Tests
-To run end-to-end tests:
-```
-npm run test:e2e
-```
-Run Tests with Coverage
 
+Coverage intentionally focuses on:
 
-Run Linting
-To check if your code passes ESLint checks:
+* business logic
+* data access
+* concurrency-critical paths
 
+Infrastructure files (`modules`, `schemas`, `main.ts`) are validated indirectly via integration and e2e tests.
+
+---
+
+## 🛠️ Running the Project
+
+```bash
+npm install
+npm run start:dev
 ```
-npm run lint
-```
-This command will show you any linting issues with your code.
 
+Environment variables:
+
+```env
+MONGO_URL=mongodb://localhost:27017/records
+```
+
+## 📌 Final Notes
+
+### Query Performance Analysis
+
+The project supports MongoDB query analysis using `explain("executionStats")`,
+allowing validation of index usage and query efficiency during development.
+
+### Future improvements:      
+
+ * Authentication and role-based access control
+ * Support for multiple external release providers
+
+---
+
+**Author:** Daniel
+**Repository:** [https://github.com/drzbraz/nestjs-challenge](https://github.com/drzbraz/nestjs-challenge)
+
+---

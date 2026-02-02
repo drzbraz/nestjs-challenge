@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 import { Record } from './record.schema';
 import { RecordCategory, RecordFormat } from './record.enum';
+import { Logger } from '@nestjs/common';
 
 export interface RecordFilter {
   q?: string;
@@ -19,6 +20,7 @@ export interface RecordFilter {
 export class RecordRepository {
   constructor(
     @InjectModel('Record') private readonly recordModel: Model<Record>,
+    private readonly logger: Logger,
   ) {}
 
   async create(data: Partial<Record>): Promise<Record> {
@@ -29,6 +31,20 @@ export class RecordRepository {
     return await this.recordModel.findOne({ _id: id, deletedAt: null }).exec();
   }
 
+  // This method is used to explain the query plan for the findAll method.
+  async explainFindAll(filter: RecordFilter) {
+    const query = {
+      ...this.buildQuery(filter),
+      deletedAt: { $exists: false },
+    };
+  
+    return this.recordModel
+      .find(query)
+      .limit(20)
+      .skip(0)
+      .explain('executionStats');
+  }
+  
   async findAll(filter: RecordFilter = {}) {
     const limit = Math.min(Number(filter.limit) || 20, 100);
     const offset = Math.max(Number(filter.offset) || 0, 0);
@@ -38,10 +54,14 @@ export class RecordRepository {
       deletedAt: { $exists: false },
     };
 
+    const startTime = Date.now();
+
     const [records, total] = await Promise.all([
       this.recordModel.find(query).limit(limit).skip(offset).exec(),
       this.recordModel.countDocuments(query).exec(),
     ]);
+
+    this.logger.log(`findAll query took ${Date.now() - startTime}ms`);
 
     return {
       data: records,
