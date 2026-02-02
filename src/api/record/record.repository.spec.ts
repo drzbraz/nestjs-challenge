@@ -28,6 +28,11 @@ describe('RecordRepository', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
       findOneAndUpdate: jest.fn(),
+      findOne: jest.fn(),
+      countDocuments: jest.fn(),
+      exec: jest.fn(),
+      limit: jest.fn(),
+      skip: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -57,19 +62,28 @@ describe('RecordRepository', () => {
 
   describe('findById', () => {
     it('should find a record by id', async () => {
-      model.findById.mockReturnValue({
+      model.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockRecord),
       } as any);
 
       const result = await repository.findById('507f1f77bcf86cd799439011');
 
       expect(result).toEqual(mockRecord);
-      expect(model.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+      expect(model.findOne).toHaveBeenCalledWith({ _id: '507f1f77bcf86cd799439011', deletedAt: null });
     });
 
     it('should return null when record not found', async () => {
-      model.findById.mockReturnValue({
+      model.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue(null),
+          }),
+        }),
+      } as any);
+
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
       const result = await repository.findById('nonexistent');
@@ -78,22 +92,47 @@ describe('RecordRepository', () => {
     });
   });
 
-  describe('findAll', () => {
-    it('should return all records without filters', async () => {
-      const records = [mockRecord];
-      model.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(records),
-      } as any);
-
-      const result = await repository.findAll({});
-
-      expect(result).toEqual(records);
-      expect(model.find).toHaveBeenCalledWith({});
+  describe('findAll', () => {it('should return all records without filters', async () => {
+    const execMock = jest.fn().mockResolvedValue([mockRecord]);
+  
+    model.find.mockReturnValue({
+      limit: jest.fn().mockReturnValue({
+        skip: jest.fn().mockReturnValue({
+          exec: execMock,
+        }),
+      }),
+    } as any);
+  
+    model.countDocuments.mockReturnValue({
+      exec: jest.fn().mockResolvedValue(1),
+    } as any);
+  
+    const result = await repository.findAll({});
+  
+    expect(result).toEqual({
+      data: [mockRecord],
+      total: 1,
+      limit: 20,
+      offset: 0,
     });
+  
+    expect(model.find).toHaveBeenCalledWith({
+      deletedAt: { $exists: false },
+    });
+  });
 
     it('should build query with artist filter (case-insensitive)', async () => {
       model.find.mockReturnValue({
         exec: jest.fn().mockResolvedValue([mockRecord]),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([mockRecord]),
+          }),
+        }),
+      } as any);
+    
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
       await repository.findAll({ artist: 'Beatles' });
@@ -105,41 +144,78 @@ describe('RecordRepository', () => {
 
     it('should build query with category filter (exact match)', async () => {
       model.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([mockRecord]),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([mockRecord]),
+          }),
+        }),
+      } as any);
+    
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
       await repository.findAll({ category: RecordCategory.ROCK });
 
       expect(model.find).toHaveBeenCalledWith({
+        deletedAt: { $exists: false },
         category: RecordCategory.ROCK,
       });
     });
 
     it('should build query with format filter (exact match)', async () => {
       model.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([mockRecord]),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([mockRecord]),
+          }),
+        }),
+      } as any);
+    
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
       await repository.findAll({ format: RecordFormat.VINYL });
 
-      expect(model.find).toHaveBeenCalledWith({ format: RecordFormat.VINYL });
+      expect(model.find).toHaveBeenCalledWith({ deletedAt: { $exists: false }, format: RecordFormat.VINYL });
     });
 
     it('should build query with q parameter using $or', async () => {
       model.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([mockRecord]),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([mockRecord]),
+          }),
+        }),
+      } as any);
+    
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
-      await repository.findAll({ q: 'Beatles' });
+      await repository.findAll({ q: 'Rock' });
 
-      const calledQuery = (model.find as jest.Mock).mock.calls[0][0] as any;
-      expect(calledQuery.$or).toBeDefined();
-      expect(calledQuery.$or).toHaveLength(3);
+      expect(model.find).toHaveBeenCalledWith({ 
+        deletedAt: { $exists: false },
+        $or: [
+        { artist: new RegExp('Rock', 'i') },
+        { album: new RegExp('Rock', 'i') },
+        { category: new RegExp('Rock', 'i') },
+      ] });
     });
 
     it('should combine multiple filters', async () => {
       model.find.mockReturnValue({
-        exec: jest.fn().mockResolvedValue([mockRecord]),
+        limit: jest.fn().mockReturnValue({
+          skip: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([mockRecord]),
+          }),
+        }),
+      } as any);
+    
+      model.countDocuments.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
       } as any);
 
       await repository.findAll({
@@ -158,7 +234,7 @@ describe('RecordRepository', () => {
   describe('updateById', () => {
     it('should update and return the record', async () => {
       const updatedRecord = { ...mockRecord, price: 30 };
-      model.findByIdAndUpdate.mockReturnValue({
+      model.findOneAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue(updatedRecord),
       } as any);
 
@@ -167,15 +243,15 @@ describe('RecordRepository', () => {
       });
 
       expect(result).toEqual(updatedRecord);
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: '507f1f77bcf86cd799439011', deletedAt: { $exists: false } },
         { price: 30 },
         { new: true },
       );
     });
 
     it('should return null when record not found', async () => {
-      model.findByIdAndUpdate.mockReturnValue({
+      model.findOneAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       } as any);
 
@@ -187,26 +263,29 @@ describe('RecordRepository', () => {
 
   describe('deleteById', () => {
     it('should delete and return the record', async () => {
-      model.findByIdAndDelete.mockReturnValue({
+      model.findOneAndUpdate.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockRecord),
       } as any);
 
-      const result = await repository.updateById('507f1f77bcf86cd799439011', { deletedAt: new Date() });
+      const date = new Date();
+      const result = await repository.updateById('507f1f77bcf86cd799439011', { deletedAt: date });
 
       expect(result).toEqual(mockRecord);
-      expect(model.findByIdAndDelete).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: '507f1f77bcf86cd799439011', deletedAt: { $exists: false } },
+        { deletedAt: date },
+        { new: true },
       );
     });
 
     it('should return null when record not found', async () => {
-      model.findByIdAndDelete.mockReturnValue({
+      model.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       } as any);
 
-      const result = await repository.updateById('nonexistent', { deletedAt: new Date() });
+      const record = await repository.findById('nonexistent');
 
-      expect(result).toBeNull();
+      expect(record).toBeNull();
     });
   });
 

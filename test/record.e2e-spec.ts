@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { RecordFormat, RecordCategory } from '../src/api/record/record.enum';
+import { Cipher } from 'crypto';
 
 describe('RecordController (e2e)', () => {
   let app: INestApplication;
@@ -104,7 +105,8 @@ describe('RecordController (e2e)', () => {
         .get('/records')
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
 
     it('should filter records by artist', async () => {
@@ -129,8 +131,8 @@ describe('RecordController (e2e)', () => {
         .get(`/records?artist=${encodeURIComponent(uniqueArtist)}`)
         .expect(200);
 
-      expect(response.body.length).toBeGreaterThanOrEqual(1);
-      expect(response.body[0]).toHaveProperty('artist', uniqueArtist);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data[0]).toHaveProperty('artist', uniqueArtist);
     });
 
     it('should filter records by category', async () => {
@@ -138,8 +140,8 @@ describe('RecordController (e2e)', () => {
         .get(`/records?category=${RecordCategory.ROCK}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      response.body.forEach((record: any) => {
+      expect(Array.isArray(response.body.data)).toBe(true);
+      response.body.data.forEach((record: any) => {
         expect(record.category).toBe(RecordCategory.ROCK);
       });
     });
@@ -166,7 +168,7 @@ describe('RecordController (e2e)', () => {
         .get(`/records?q=${uniqueAlbum}`)
         .expect(200);
 
-      expect(response.body.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -257,7 +259,7 @@ describe('RecordController (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`/records/${created.body._id}`)
-        .expect(200);
+        .expect(204);
 
       await request(app.getHttpServer())
         .get(`/records/${created.body._id}`)

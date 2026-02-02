@@ -213,7 +213,7 @@ describe('RecordController', () => {
 
       const result = await controller.delete('507f1f77bcf86cd799439011');
 
-      expect(result).toEqual(mockRecord);
+      expect(result).toBeUndefined();
       expect(service.delete).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
     });
 

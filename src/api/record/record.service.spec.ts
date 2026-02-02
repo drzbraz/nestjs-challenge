@@ -5,11 +5,16 @@ import { MusicBrainzService } from '../../integrations/musicbrainz/musicbrainz.s
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { RecordCategory, RecordFormat } from './record.enum';
 import { MongoErrorCode } from '../../common/constants/error-codes.constants';
-
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Record } from './record.schema';
+import { Cache } from 'cache-manager';
 describe('RecordService', () => {
   let service: RecordService;
   let repository: jest.Mocked<RecordRepository>;
   let musicBrainzService: jest.Mocked<MusicBrainzService>;
+  let cacheManager: jest.Mocked<Cache>;
+  let cacheKey: string;
+  let cachedResult: { data: Record[], total: number, limit: number, offset: number };
 
   const mockRecord = {
     _id: '507f1f77bcf86cd799439011',
@@ -29,6 +34,8 @@ describe('RecordService', () => {
   ];
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const mockRepository = {
       create: jest.fn(),
       findById: jest.fn(),
@@ -43,17 +50,27 @@ describe('RecordService', () => {
       getRelease: jest.fn(),
     };
 
+    const cacheManagerMock: jest.Mocked<Cache> = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      reset: jest.fn(),
+    } as any;
+
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordService,
         { provide: RecordRepository, useValue: mockRepository },
         { provide: MusicBrainzService, useValue: mockMusicBrainzService },
+        { provide: CACHE_MANAGER, useValue: cacheManagerMock },
       ],
     }).compile();
 
     service = module.get<RecordService>(RecordService);
     repository = module.get(RecordRepository);
     musicBrainzService = module.get(MusicBrainzService);
+    cacheManager = module.get(CACHE_MANAGER);
   });
 
   describe('create', () => {
@@ -145,23 +162,86 @@ describe('RecordService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all records without filters', async () => {
-      const records = [mockRecord, { ...mockRecord, _id: '2' }];
-      repository.findAll.mockResolvedValue(records as any);
+    const mockRecord = {
+      _id: '507f1f77bcf86cd799439011',
+      artist: 'The Beatles',
+      album: 'Abbey Road',
+      price: 25,
+      qty: 10,
+      format: RecordFormat.VINYL,
+      category: RecordCategory.ROCK,
+      mbid: undefined,
+      tracklist: [],
+    } as any;
 
+    beforeEach(() => {
+      cacheKey = `records:${JSON.stringify({})}`;
+      cachedResult = { data: [mockRecord], total: 1, limit: 20, offset: 0 };
+      (cacheManager as jest.Mocked<Cache>).get.mockResolvedValue(cachedResult);
+      (cacheManager as jest.Mocked<Cache>).set.mockResolvedValue(undefined);
+    });
+
+    it('should return all records without filters', async () => {
       const result = await service.findAll({});
 
-      expect(result).toEqual(records);
-      expect(repository.findAll).toHaveBeenCalledWith({});
+      expect(result).toEqual(cachedResult);
+      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(cacheKey);
     });
 
     it('should pass filters to repository', async () => {
       const filter = { artist: 'Beatles', category: RecordCategory.ROCK };
-      repository.findAll.mockResolvedValue([mockRecord] as any);
-
+      const cacheKey = `records:${JSON.stringify(filter)}`;
       await service.findAll(filter);
 
-      expect(repository.findAll).toHaveBeenCalledWith(filter);
+      expect((cacheManager as jest.Mocked<Cache>).get).toHaveBeenCalledWith(cacheKey);
+    });
+
+    it('should cache results', async () => {
+      const filter = { artist: 'Pink Floyd', category: RecordCategory.ROCK };
+      const cacheKey = `records:${JSON.stringify(filter)}`;
+      const cachedResult = null as any;
+
+      (cacheManager as jest.Mocked<Cache>).get.mockResolvedValue(cachedResult);
+
+
+      repository.findAll.mockResolvedValue({ data: [
+        {
+          _id: '507f1f77bcf86cd799439011',
+          artist: 'Pink Floyd',
+          album: 'The Dark Side of the Moon',
+          price: 25,
+          qty: 10,
+          format: RecordFormat.VINYL,
+          category: RecordCategory.ROCK,
+        },
+      ], total: 1, limit: 20, offset: 0 } as any);
+
+      const result = await service.findAll(filter);
+
+      expect((cacheManager as jest.Mocked<Cache>).set).toHaveBeenCalledWith(cacheKey, { data: [
+        {
+          _id: '507f1f77bcf86cd799439011',
+          artist: 'Pink Floyd',
+          album: 'The Dark Side of the Moon',
+          price: 25,
+          qty: 10,
+          format: RecordFormat.VINYL,
+          category: RecordCategory.ROCK,
+        },
+      ], total: 1, limit: 20, offset: 0 });
+
+      expect(result).toEqual({ data: [
+        {
+          _id: '507f1f77bcf86cd799439011',
+          artist: 'Pink Floyd',
+          album: 'The Dark Side of the Moon',
+          price: 25,
+          qty: 10,
+          format: RecordFormat.VINYL,
+          category: RecordCategory.ROCK,
+        },
+      ], total: 1, limit: 20, offset: 0 });
+
     });
   });
 
@@ -273,15 +353,18 @@ describe('RecordService', () => {
 
   describe('delete', () => {
     it('should delete a record', async () => {
-      repository.deleteById.mockResolvedValue(mockRecord as any);
+      repository.updateById.mockResolvedValue(mockRecord as any);
 
-      const result = await service.delete('507f1f77bcf86cd799439011');
+      await service.delete('507f1f77bcf86cd799439011');
 
-      expect(result).toEqual(mockRecord);
+      expect(repository.updateById).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        { deletedAt: new Date() },
+      );
     });
 
     it('should throw NotFoundException when record not found', async () => {
-      repository.deleteById.mockResolvedValue(null);
+      repository.findById.mockResolvedValue(null);
 
       await expect(service.delete('nonexistent')).rejects.toThrow(
         NotFoundException,

@@ -50,13 +50,13 @@ export class RecordRepository {
       offset,
     };
   }
-  
+
   async updateById(id: string, update: Partial<Record>) {
-    return this.recordModel.findOneAndUpdate(
+    return await this.recordModel.findOneAndUpdate(
       { _id: id, deletedAt: { $exists: false } },
-        update,
+      update,
       { new: true },
-    );
+    ).exec();
   }
   async decrementStockIfAvailable(
     recordId: string,
