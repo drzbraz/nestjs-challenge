@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { RecordRepository } from './record.repository';
 import { Record } from './record.schema';
 import { RecordCategory, RecordFormat } from './record.enum';
+import { Logger } from '@nestjs/common';
 
 describe('RecordRepository', () => {
   let repository: RecordRepository;
@@ -38,6 +39,7 @@ describe('RecordRepository', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecordRepository,
+        Logger,
         {
           provide: getModelToken('Record'),
           useValue: mockModel,
