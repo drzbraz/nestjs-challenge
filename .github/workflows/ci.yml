@@ -6,27 +6,23 @@ on:
   pull_request:
     branches: [ main ]
 
-services:
-  mongo:
-    image: mongo:6
-    ports: [ "27017:27017" ]
-    environment:
-      MONGO_INITDB_DATABASE: records
-    healthcheck:
-      test: mongosh --eval 'db.runCommand("ping").ok' localhost:27017/test --quiet
-      interval: 2s
-      timeout: 3s
-      retries: 5
-    volumes: [ mongo_data:/data/db ]
-
-volumes: { mongo_data: {} }
-
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=2s
+          --health-timeout=3s
+          --health-retries=5
+
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -42,3 +38,5 @@ jobs:
 
       - name: Run e2e tests
         run: npm run test:e2e
+        env:
+          MONGO_URL: mongodb://mongo:27017/records
