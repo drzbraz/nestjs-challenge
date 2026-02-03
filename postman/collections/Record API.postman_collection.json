@@ -1,0 +1,611 @@
+{
+  "info": {
+    "_postman_id": "ce98925a-4723-4998-89f3-e0a2793a7aa5",
+    "name": "Record API",
+    "description": "The record management API - A NestJS API for managing music records and orders. This collection includes endpoints for CRUD operations on records and order creation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Records",
+      "item": [
+        {
+          "name": "Create Record",
+          "id": "dc82a265-487e-4455-91ae-e3713cf607e1",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 30,\n  \"qty\": 10,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"mbid\": \"cf0d899c-bbc6-4a33-ba74-5e335284e836\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/records",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "records"
+              ]
+            },
+            "description": "Create a new record in the database. The record is uniquely identified by artist + album + format combination."
+          },
+          "response": [
+            {
+              "id": "87157453-7e43-4fde-9bca-351be6e94770",
+              "name": "Record Created Successfully",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 30,\n  \"qty\": 10,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"mbid\": \"cf0d899c-bbc6-4a33-ba74-5e335284e836\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/records",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"_id\": \"507f1f77bcf86cd799439011\",\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 30,\n  \"qty\": 10,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"mbid\": \"cf0d899c-bbc6-4a33-ba74-5e335284e836\",\n  \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n  \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n}"
+            },
+            {
+              "id": "ce2ff064-5d3d-4238-bc6c-f752fc5dce18",
+              "name": "Record Already Exists",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 30,\n  \"qty\": 10,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/records",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 409,\n  \"message\": \"Record already exists\",\n  \"error\": \"Conflict\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Records",
+          "id": "f71427d1-e1c7-4557-961f-de6f76d0f9ce",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/records?q=&artist=&album=&format=&category=&limit=10&offset=0",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "records"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Search query (search across multiple fields like artist, album, category, etc.)"
+                },
+                {
+                  "key": "artist",
+                  "value": "",
+                  "description": "Filter by artist name"
+                },
+                {
+                  "key": "album",
+                  "value": "",
+                  "description": "Filter by album name"
+                },
+                {
+                  "key": "format",
+                  "value": "",
+                  "description": "Filter by record format (Vinyl, CD, Cassette, Digital)"
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by record category (Rock, Jazz, Hip-Hop, Classical, Pop, Alternative, Indie)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of records to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of records to skip"
+                }
+              ]
+            },
+            "description": "Get all records with optional filters. Supports search query, filtering by artist, album, format, and category, as well as pagination."
+          },
+          "response": [
+            {
+              "id": "5c875163-21ec-4fcb-a8f6-79a8baa9282f",
+              "name": "Records List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/records?limit=10&offset=0",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"data\": [\n    {\n      \"_id\": \"507f1f77bcf86cd799439011\",\n      \"artist\": \"The Beatles\",\n      \"album\": \"Abbey Road\",\n      \"price\": 30,\n      \"qty\": 10,\n      \"format\": \"Vinyl\",\n      \"category\": \"Rock\",\n      \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n      \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n    }\n  ],\n  \"total\": 1,\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Record by ID",
+          "id": "5d506217-05f8-4ecd-acdf-e016151d9bcc",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/records/{{recordId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}"
+              ]
+            },
+            "description": "Get a specific record by its MongoDB ObjectId."
+          },
+          "response": [
+            {
+              "id": "0119d2d0-fb95-4216-99cb-4046d06837b4",
+              "name": "Record Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439011",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439011"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"_id\": \"507f1f77bcf86cd799439011\",\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 30,\n  \"qty\": 10,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"mbid\": \"cf0d899c-bbc6-4a33-ba74-5e335284e836\",\n  \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n  \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n}"
+            },
+            {
+              "id": "61d34c0c-066f-437d-888e-d943166de82a",
+              "name": "Record Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439012",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439012"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Record not found\",\n  \"error\": \"Not Found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Record",
+          "id": "94f5ffb7-73fe-40c5-9eeb-045471b9d999",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road (Remastered)\",\n  \"price\": 35,\n  \"qty\": 15,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"mbid\": \"b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/records/{{recordId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}"
+              ]
+            },
+            "description": "Update an existing record. All fields are optional - only provided fields will be updated."
+          },
+          "response": [
+            {
+              "id": "ea68660c-ed9a-4197-8246-03fbd172d00e",
+              "name": "Record Updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 35,\n  \"qty\": 15\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439011",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439011"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"_id\": \"507f1f77bcf86cd799439011\",\n  \"artist\": \"The Beatles\",\n  \"album\": \"Abbey Road\",\n  \"price\": 35,\n  \"qty\": 15,\n  \"format\": \"Vinyl\",\n  \"category\": \"Rock\",\n  \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n  \"updatedAt\": \"2024-01-15T11:00:00.000Z\"\n}"
+            },
+            {
+              "id": "bf687704-7bd6-4e5a-8a3d-9f9509ebb6ed",
+              "name": "Record Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 35\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439012",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439012"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Record not found\",\n  \"error\": \"Not Found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Record",
+          "id": "00725790-53ff-43e3-be8c-27157722c515",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/records/{{recordId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "records",
+                "{{recordId}}"
+              ]
+            },
+            "description": "Delete a record by its ID. Returns 204 No Content on success."
+          },
+          "response": [
+            {
+              "id": "42765f96-415f-426d-9998-145af69d0914",
+              "name": "Record Deleted",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439011",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439011"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "id": "0e871aa4-78e5-44f2-bb3c-ba04fc9f72df",
+              "name": "Record Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/records/507f1f77bcf86cd799439012",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "records",
+                    "507f1f77bcf86cd799439012"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Record not found\",\n  \"error\": \"Not Found\"\n}"
+            }
+          ]
+        }
+      ],
+      "id": "6df34b31-2b67-4266-8186-99e866abb5fb",
+      "description": "Endpoints for managing music records (CRUD operations)"
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "id": "08eb66ec-946a-4301-b4d7-d1a377fb9204",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recordId\": \"507f1f77bcf86cd799439011\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/orders",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Create a new order for a record. The order will deduct the quantity from the record's stock."
+          },
+          "response": [
+            {
+              "id": "eb851176-3215-4f77-8f2b-c523c72a1ec0",
+              "name": "Order Created Successfully",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"recordId\": \"507f1f77bcf86cd799439011\",\n  \"quantity\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/orders",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "orders"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"_id\": \"507f1f77bcf86cd799439022\",\n  \"recordId\": \"507f1f77bcf86cd799439011\",\n  \"quantity\": 1,\n  \"price\": 30,\n  \"createdAt\": \"2024-01-15T12:00:00.000Z\",\n  \"updatedAt\": \"2024-01-15T12:00:00.000Z\"\n}"
+            },
+            {
+              "id": "9dc5775b-dbfc-478e-9209-a33d2a031ea2",
+              "name": "Record Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"recordId\": \"507f1f77bcf86cd799439099\",\n  \"quantity\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/orders",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "orders"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Record not found\",\n  \"error\": \"Not Found\"\n}"
+            },
+            {
+              "id": "95b5d658-d882-46d8-a180-49ca6e9ac359",
+              "name": "Insufficient Stock",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"recordId\": \"507f1f77bcf86cd799439011\",\n  \"quantity\": 100\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/orders",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "orders"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 409,\n  \"message\": \"Insufficient stock\",\n  \"error\": \"Conflict\"\n}"
+            },
+            {
+              "id": "878d0f14-73c1-4e5e-a522-a6bbc9e0c061",
+              "name": "Bad Request - Invalid recordId",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"recordId\": \"invalid-id\",\n  \"quantity\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseURL}}/orders",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "orders"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": [\"recordId must be a valid MongoDB ObjectId\"],\n  \"error\": \"Bad Request\"\n}"
+            }
+          ]
+        }
+      ],
+      "id": "d6f4c5f9-6747-48ac-9459-292babe62c71",
+      "description": "Endpoints for managing orders"
+    }
+  ],
+  "variable": [
+    {
+      "id": "54cde5cc-443c-48be-9f15-593fac2dada6",
+      "key": "baseURL",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
